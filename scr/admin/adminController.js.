@@ -1,0 +1,95 @@
+
+import { logger } from '../logger.js';
+
+export function createAdminController({ adminService } = {}) {
+  if (!adminService) {
+    throw new Error('AdminService is required.');
+  }
+
+  async function listCustomers(req, res) {
+    const customers = await adminService.listCustomers();
+
+    // Never expose password hashes, tokens or stored credentials.
+    const safeCustomers = customers.map(customer => ({
+      id: customer.id,
+      username: customer.username,
+      status: customer.status,
+      paymentStatus: customer.paymentStatus,
+      subscriptionStatus: customer.subscriptionStatus,
+      subscriptionExpiresAt: customer.subscriptionExpiresAt
+    }));
+
+    return res.json({
+      success: true,
+      customers: safeCustomers
+    });
+  }
+
+  async function getCustomer(req, res) {
+    const { customerId } = req.params;
+
+    const customer = await adminService.getCustomer(customerId);
+
+    if (!customer) {
+      return res.status(404).json({
+        success: false,
+        error: 'Customer not found.'
+      });
+    }
+
+    return res.json({
+      success: true,
+      customer: {
+        id: customer.id,
+        username: customer.username,
+        status: customer.status,
+        paymentStatus: customer.paymentStatus,
+        subscriptionStatus: customer.subscriptionStatus,
+        subscriptionExpiresAt: customer.subscriptionExpiresAt
+      }
+    });
+  }
+
+  async function issueAccessKey(req, res) {
+    const { customerId } = req.params;
+    const adminId = req.admin?.id;
+
+    if (!adminId) {
+      return res.status(401).json({
+        success: false,
+        error: 'Admin authentication required.'
+      });
+    }
+
+    const result = await adminService.issueAccessKey({
+      customerId,
+      adminId
+    });
+
+    if (!result) {
+      return res.status(409).json({
+        success: false,
+        error: 'Access key could not be issued.'
+      });
+    }
+
+    logger.info(
+      { customerId, adminId },
+      'Admin issued a customer access key.'
+    );
+
+    // The raw key may be returned once by the service.
+    // Never log it or include it in later customer listings.
+    return res.status(201).json({
+      success: true,
+      accessKey: result.accessKey,
+      message: 'Store this key securely. It will not be shown again.'
+    });
+  }
+
+  return {
+    listCustomers,
+    getCustomer,
+    issueAccessKey
+  };
+}
