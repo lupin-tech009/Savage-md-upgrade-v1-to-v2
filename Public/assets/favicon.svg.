@@ -1,0 +1,46 @@
+
+<svg
+  xmlns="http://www.w3.org/2000/svg"
+  viewBox="0 0 64 64"
+  role="img"
+  aria-labelledby="faviconTitle"
+>
+  <title id="faviconTitle">SAVAGE MD</title>
+
+  <defs>
+    <linearGradient id="redGradient" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#ff2935"/>
+      <stop offset="100%" stop-color="#92000b"/>
+    </linearGradient>
+  </defs>
+
+  <rect width="64" height="64" rx="13" fill="#080808"/>
+
+  <path
+    d="M32 5 L55 14 V31
+       C55 45 45 55 32 60
+       C19 55 9 45 9 31
+       V14 Z"
+    fill="url(#redGradient)"
+  />
+
+  <path
+    d="M42 21
+       C39 17 35 16 31 16
+       C23 16 18 21 18 27
+       C18 32 22 35 30 37
+       L34 38
+       C38 39 40 40 40 43
+       C40 46 37 48 33 48
+       C28 48 24 46 21 43
+       L16 48
+       C20 52 26 54 33 54
+       C42 54 47 49 47 42
+       C47 36 43 33 35 31
+       L31 30
+       C27 29 25 28 25 26
+       C25 23 27 22 31 22
+       C34 22 37 23 39 25 Z"
+    fill="#ffffff"
+  />
+</svg>
