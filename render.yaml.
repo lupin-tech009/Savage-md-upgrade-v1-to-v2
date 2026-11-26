@@ -1,0 +1,37 @@
+
+services:
+  - type: web
+    name: savage-md-v2
+    runtime: node
+    plan: free
+    region: frankfurt
+
+    buildCommand: npm install
+    startCommand: npm start
+
+    healthCheckPath: /api/health
+
+    envVars:
+      - key: NODE_ENV
+        value: production
+
+      - key: COMMAND_PREFIX
+        value: "$"
+
+      - key: LOG_LEVEL
+        value: info
+
+      - key: MAX_SESSIONS
+        value: "5"
+
+      - key: DATABASE_URL
+        sync: false
+
+      - key: SESSION_ENCRYPTION_KEY
+        sync: false
+
+      - key: OWNER_ADMIN_SECRET
+        sync: false
+
+      - key: ADMIN_SESSION_SECRET
+        sync: false
