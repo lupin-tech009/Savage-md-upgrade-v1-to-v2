@@ -1,0 +1,265 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="theme-color" content="#090909">
+
+  <title>SAVAGE MD V2 | Admin Panel</title>
+
+  <link rel="icon" href="/assets/favicon.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="/admin/admin.css">
+</head>
+
+<body>
+  <div class="admin-shell">
+
+    <header class="admin-header">
+      <div class="brand">
+        <div class="brand-mark">S</div>
+        <div>
+          <h1>SAVAGE MD <span>V2</span></h1>
+          <p>OWNER CONTROL PANEL</p>
+        </div>
+      </div>
+
+      <button
+        id="logoutButton"
+        class="logout-button"
+        type="button"
+        hidden
+      >
+        Logout
+      </button>
+    </header>
+
+    <main>
+
+      <!-- Admin authentication -->
+      <section id="loginSection" class="panel login-panel">
+        <h2>Administrator Login</h2>
+        <p class="muted">
+          Restricted access. Authorized owner account only.
+        </p>
+
+        <form id="adminLoginForm">
+          <label for="adminUsername">Admin username</label>
+          <input
+            id="adminUsername"
+            name="username"
+            type="text"
+            autocomplete="username"
+            required
+          >
+
+          <label for="adminPassword">Admin password</label>
+          <input
+            id="adminPassword"
+            name="password"
+            type="password"
+            autocomplete="current-password"
+            required
+          >
+
+          <button type="submit" class="primary-button">
+            Sign in
+          </button>
+        </form>
+
+        <p id="loginMessage" class="message" role="status"></p>
+      </section>
+
+      <!-- Main dashboard -->
+      <section id="dashboardSection" hidden>
+
+        <div class="welcome-row">
+          <div>
+            <h2>Owner Dashboard</h2>
+            <p class="muted">Manage customers and subscriptions.</p>
+          </div>
+
+          <button
+            id="refreshButton"
+            class="secondary-button"
+            type="button"
+          >
+            Refresh
+          </button>
+        </div>
+
+        <section class="statistics-grid">
+          <article class="stat-card">
+            <span>Total customers</span>
+            <strong id="totalCustomers">0</strong>
+          </article>
+
+          <article class="stat-card">
+            <span>Active subscriptions</span>
+            <strong id="activeSubscriptions">0</strong>
+          </article>
+
+          <article class="stat-card">
+            <span>Expired subscriptions</span>
+            <strong id="expiredSubscriptions">0</strong>
+          </article>
+
+          <article class="stat-card">
+            <span>Pending payments</span>
+            <strong id="pendingPayments">0</strong>
+          </article>
+        </section>
+
+        <section class="panel customer-panel">
+          <div class="section-heading">
+            <div>
+              <h2>Customer Management</h2>
+              <p class="muted">
+                Review accounts, payment verification and access keys.
+              </p>
+            </div>
+          </div>
+
+          <div class="search-row">
+            <input
+              id="customerSearch"
+              type="search"
+              placeholder="Search username or customer ID"
+              autocomplete="off"
+            >
+
+            <button
+              id="searchButton"
+              class="secondary-button"
+              type="button"
+            >
+              Search
+            </button>
+          </div>
+
+          <div class="table-wrapper">
+            <table>
+              <thead>
+                <tr>
+                  <th>Username</th>
+                  <th>Payment</th>
+                  <th>Subscription</th>
+                  <th>Expiry</th>
+                  <th>Access key</th>
+                  <th>Action</th>
+                </tr>
+              </thead>
+
+              <tbody id="customerTableBody">
+                <tr>
+                  <td colspan="6">No customer records loaded.</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+
+          <p id="customerMessage" class="message" role="status"></p>
+        </section>
+
+        <!-- Selected customer details -->
+        <section id="customerDetails" class="panel" hidden>
+          <h2>Customer Details</h2>
+
+          <div class="details-grid">
+            <div>
+              <span>Username</span>
+              <strong id="detailUsername">—</strong>
+            </div>
+
+            <div>
+              <span>Customer ID</span>
+              <strong id="detailCustomerId">—</strong>
+            </div>
+
+            <div>
+              <span>Payment status</span>
+              <strong id="detailPaymentStatus">—</strong>
+            </div>
+
+            <div>
+              <span>Subscription status</span>
+              <strong id="detailSubscriptionStatus">—</strong>
+            </div>
+
+            <div>
+              <span>Subscription expiry</span>
+              <strong id="detailExpiry">—</strong>
+            </div>
+
+            <div>
+              <span>Access key status</span>
+              <strong id="detailKeyStatus">—</strong>
+            </div>
+          </div>
+
+          <div class="action-row">
+            <button
+              id="verifyPaymentButton"
+              class="primary-button"
+              type="button"
+            >
+              Verify payment
+            </button>
+
+            <button
+              id="issueKeyButton"
+              class="secondary-button"
+              type="button"
+            >
+              Issue access key
+            </button>
+
+            <button
+              id="renewSubscriptionButton"
+              class="secondary-button"
+              type="button"
+            >
+              Renew subscription
+            </button>
+          </div>
+
+          <p id="detailMessage" class="message" role="status"></p>
+        </section>
+
+        <!-- One-time access-key reveal -->
+        <section id="accessKeyPanel" class="panel key-panel" hidden>
+          <h2>New Access Key</h2>
+
+          <p class="muted">
+            This key is shown only when issued. Send it securely to its
+            assigned customer.
+          </p>
+
+          <div class="key-display">
+            <code id="generatedAccessKey"></code>
+
+            <button
+              id="copyAccessKeyButton"
+              class="secondary-button"
+              type="button"
+            >
+              Copy key
+            </button>
+          </div>
+
+          <p id="keyMessage" class="message" role="status"></p>
+        </section>
+
+      </section>
+    </main>
+
+    <footer>
+      <p>SAVAGE MD V2 · Lupin Tech</p>
+      <p>Private administrator interface</p>
+    </footer>
+
+  </div>
+
+  <script src="/admin/admin.js" defer></script>
+</body>
+</html>
