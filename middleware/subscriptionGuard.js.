@@ -1,0 +1,48 @@
+import { getSubscription } from '../repositories/subscriptionRepository.js';
+
+export async function subscriptionGuard(req, res, next) {
+  try {
+    const customerId = req.auth?.customerId;
+
+    if (!customerId) {
+      return res.status(401).json({
+        success: false,
+        error: 'Customer authentication required.'
+      });
+    }
+
+    const subscription = await getSubscription(customerId);
+
+    if (!subscription) {
+      return res.status(403).json({
+        success: false,
+        error: 'No subscription found for this account.'
+      });
+    }
+
+    if (subscription.status !== 'active') {
+      return res.status(403).json({
+        success: false,
+        error: 'Your subscription is not active.'
+      });
+    }
+
+    const expiresAt = new Date(subscription.expires_at).getTime();
+
+    if (
+      !Number.isFinite(expiresAt) ||
+      expiresAt <= Date.now()
+    ) {
+      return res.status(403).json({
+        success: false,
+        error: 'Your subscription has expired. Please renew.'
+      });
+    }
+
+    req.subscription = subscription;
+
+    return next();
+  } catch (error) {
+    return next(error);
+  }
+}
