@@ -1,0 +1,50 @@
+
+import { config } from '../src/config.js';
+
+const requiredVariables = [
+  'DATABASE_URL',
+  'SESSION_ENCRYPTION_KEY',
+  'OWNER_ADMIN_SECRET',
+  'ADMIN_SESSION_SECRET'
+];
+
+const optionalVariables = [
+  'PORT',
+  'NODE_ENV',
+  'COMMAND_PREFIX',
+  'LOG_LEVEL',
+  'PAIRING_CODE_WAIT_MS',
+  'PAIRING_TIMEOUT_MS'
+];
+
+function checkEnvironment() {
+  const missing = requiredVariables.filter(
+    (name) => !process.env[name]?.trim()
+  );
+
+  if (missing.length > 0) {
+    console.error('Environment check failed.');
+    console.error(`Missing variables: ${missing.join(', ')}`);
+    process.exitCode = 1;
+    return;
+  }
+
+  console.log('Required environment variables are present.');
+  console.log(`Environment: ${config.nodeEnv}`);
+  console.log(`Port: ${config.port}`);
+  console.log(`Command prefix: ${config.commandPrefix}`);
+
+  const missingOptional = optionalVariables.filter(
+    (name) => !process.env[name]?.trim()
+  );
+
+  if (missingOptional.length > 0) {
+    console.log(
+      `Optional variables using defaults: ${missingOptional.join(', ')}`
+    );
+  }
+
+  console.log('Environment check completed.');
+}
+
+checkEnvironment();
