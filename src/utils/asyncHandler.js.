@@ -1,0 +1,13 @@
+
+export function asyncHandler(handler) {
+  if (typeof handler !== 'function') {
+    throw new TypeError(
+      'asyncHandler requires a function.'
+    );
+  }
+
+  return function wrappedHandler(req, res, next) {
+    Promise.resolve(handler(req, res, next))
+      .catch(next);
+  };
+}
