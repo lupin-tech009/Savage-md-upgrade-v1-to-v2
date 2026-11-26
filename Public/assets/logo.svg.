@@ -1,0 +1,77 @@
+
+<svg
+  xmlns="http://www.w3.org/2000/svg"
+  viewBox="0 0 512 512"
+  role="img"
+  aria-labelledby="logoTitle logoDescription"
+>
+  <title id="logoTitle">SAVAGE MD V2</title>
+  <desc id="logoDescription">
+    Red and black shield logo featuring the letter S.
+  </desc>
+
+  <defs>
+    <linearGradient id="shieldGradient" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#ff2935"/>
+      <stop offset="100%" stop-color="#8b000b"/>
+    </linearGradient>
+
+    <linearGradient id="letterGradient" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#ffffff"/>
+      <stop offset="100%" stop-color="#d8d8d8"/>
+    </linearGradient>
+  </defs>
+
+  <rect width="512" height="512" rx="100" fill="#080808"/>
+
+  <path
+    d="M256 38
+       L430 105
+       V245
+       C430 355 354 432 256 474
+       C158 432 82 355 82 245
+       V105 Z"
+    fill="url(#shieldGradient)"
+    stroke="#ff4b55"
+    stroke-width="10"
+  />
+
+  <path
+    d="M256 65
+       L402 120
+       V244
+       C402 337 341 400 256 439
+       C171 400 110 337 110 244
+       V120 Z"
+    fill="#101010"
+    stroke="#570009"
+    stroke-width="8"
+  />
+
+  <path
+    d="M330 164
+       C310 143 284 133 252 133
+       C197 133 162 164 162 210
+       C162 248 186 269 244 284
+       L275 293
+       C301 301 312 311 312 327
+       C312 347 292 359 264 359
+       C232 359 206 345 185 322
+       L151 362
+       C180 393 218 409 265 409
+       C325 409 361 377 361 326
+       C361 284 335 260 278 245
+       L247 237
+       C221 230 211 221 211 205
+       C211 188 226 179 250 179
+       C273 179 293 187 309 202 Z"
+    fill="url(#letterGradient)"
+  />
+
+  <path
+    d="M145 118 H367"
+    stroke="#ff2935"
+    stroke-width="5"
+    opacity="0.8"
+  />
+</svg>
