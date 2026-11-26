@@ -1,0 +1,265 @@
+
+const API_BASE = '/api';
+
+const elements = {
+  logoutButton: document.getElementById('logoutButton'),
+  accountStatus: document.getElementById('accountStatus'),
+  customerUsername: document.getElementById('customerUsername'),
+  customerStatus: document.getElementById('customerStatus'),
+  subscriptionStatus: document.getElementById('subscriptionStatus'),
+  subscriptionExpiry: document.getElementById('subscriptionExpiry'),
+  connectionDot: document.getElementById('connectionDot'),
+  connectionStatus: document.getElementById('connectionStatus'),
+  connectionMessage: document.getElementById('connectionMessage'),
+  sessionStatus: document.getElementById('sessionStatus'),
+  phoneSettingsForm: document.getElementById('phoneSettingsForm'),
+  pairingNumber: document.getElementById('pairingNumber'),
+  promotionNumber: document.getElementById('promotionNumber'),
+  phoneSettingsMessage: document.getElementById('phoneSettingsMessage'),
+  generatePairingButton: document.getElementById('generatePairingButton'),
+  pairingResult: document.getElementById('pairingResult'),
+  pairingCode: document.getElementById('pairingCode'),
+  copyPairingButton: document.getElementById('copyPairingButton'),
+  pairingMessage: document.getElementById('pairingMessage'),
+  pairingError: document.getElementById('pairingError')
+};
+
+let currentPairingCode = null;
+
+async function apiRequest(endpoint, options = {}) {
+  const response = await fetch(`${API_BASE}${endpoint}`, {
+    ...options,
+    credentials: 'same-origin',
+    headers: {
+      'Content-Type': 'application/json',
+      ...options.headers
+    }
+  });
+
+  const result = await response.json().catch(() => ({}));
+
+  if (response.status === 401) {
+    window.location.href = '/login.html';
+    throw new Error('Authentication required.');
+  }
+
+  if (!response.ok) {
+    throw new Error(
+      result.error || 'Request failed.'
+    );
+  }
+
+  return result;
+}
+
+function setMessage(element, message, isError = false) {
+  if (!element) return;
+
+  element.textContent = message;
+  element.classList.toggle('error-message', isError);
+}
+
+function formatDate(value) {
+  if (!value) return 'Not available';
+
+  const date = new Date(value);
+
+  if (Number.isNaN(date.getTime())) {
+    return 'Not available';
+  }
+
+  return date.toLocaleDateString();
+}
+
+async function loadDashboard() {
+  try {
+    const result = await apiRequest('/customer/profile');
+
+    const customer = result.customer;
+    const subscription = result.subscription || {};
+
+    elements.customerUsername.textContent =
+      customer.username || 'Customer';
+
+    elements.customerStatus.textContent =
+      customer.status || 'Unknown';
+
+    elements.subscriptionStatus.textContent =
+      subscription.status || 'Unknown';
+
+    elements.subscriptionExpiry.textContent =
+      formatDate(subscription.expiresAt);
+
+    elements.accountStatus.textContent =
+      customer.status === 'active'
+        ? 'Account active'
+        : 'Account unavailable';
+
+    elements.pairingNumber.value =
+      customer.pairingNumber || '';
+
+    elements.promotionNumber.value =
+      customer.promotionNumber || '';
+
+    await loadConnectionStatus();
+  } catch (error) {
+    elements.accountStatus.textContent = 'Unable to load account';
+
+    console.error('Dashboard loading failed:', error.message);
+  }
+}
+
+async function loadConnectionStatus() {
+  try {
+    const result = await apiRequest('/pairing/status');
+
+    const status = result.status || {};
+
+    elements.connectionStatus.textContent =
+      status.state || 'Disconnected';
+
+    elements.connectionMessage.textContent =
+      status.connected
+        ? 'Your WhatsApp connection is active.'
+        : 'Your WhatsApp connection is not active.';
+
+    elements.sessionStatus.textContent =
+      status.connected ? 'Active' : 'Inactive';
+
+    elements.connectionDot.classList.toggle(
+      'connected',
+      Boolean(status.connected)
+    );
+  } catch (error) {
+    elements.connectionMessage.textContent =
+      'Unable to check connection status.';
+  }
+}
+
+async function savePhoneSettings(event) {
+  event.preventDefault();
+
+  setMessage(
+    elements.phoneSettingsMessage,
+    'Saving settings...'
+  );
+
+  try {
+    await apiRequest('/customer/phone-settings', {
+      method: 'PUT',
+      body: JSON.stringify({
+        pairingNumber: elements.pairingNumber.value.trim(),
+        promotionNumber: elements.promotionNumber.value.trim()
+      })
+    });
+
+    setMessage(
+      elements.phoneSettingsMessage,
+      'Phone settings saved successfully.'
+    );
+  } catch (error) {
+    setMessage(
+      elements.phoneSettingsMessage,
+      error.message,
+      true
+    );
+  }
+}
+
+async function generatePairingCode() {
+  elements.generatePairingButton.disabled = true;
+  elements.pairingError.textContent = '';
+  elements.pairingMessage.textContent = 'Requesting pairing code...';
+  elements.pairingResult.hidden = true;
+
+  currentPairingCode = null;
+
+  try {
+    const result = await apiRequest('/pairing/start', {
+      method: 'POST',
+      body: JSON.stringify({})
+    });
+
+    if (
+      typeof result.code !== 'string' ||
+      !/^[A-Z0-9-]{4,16}$/.test(result.code)
+    ) {
+      throw new Error('A valid pairing code was not returned.');
+    }
+
+    currentPairingCode = result.code;
+
+    elements.pairingCode.textContent = result.code;
+    elements.pairingResult.hidden = false;
+
+    elements.pairingMessage.textContent =
+      'Enter this code in WhatsApp linked-device settings.';
+  } catch (error) {
+    setMessage(elements.pairingError, error.message, true);
+    elements.pairingMessage.textContent = '';
+  } finally {
+    elements.generatePairingButton.disabled = false;
+  }
+}
+
+async function copyPairingCode() {
+  if (!currentPairingCode) {
+    setMessage(
+      elements.pairingMessage,
+      'There is no valid pairing code to copy.',
+      true
+    );
+
+    return;
+  }
+
+  try {
+    await navigator.clipboard.writeText(currentPairingCode);
+
+    setMessage(
+      elements.pairingMessage,
+      'Pairing code copied successfully.'
+    );
+  } catch {
+    setMessage(
+      elements.pairingMessage,
+      'Copy failed. Please copy the code manually.',
+      true
+    );
+  }
+}
+
+async function logout() {
+  try {
+    await apiRequest('/customer/logout', {
+      method: 'POST',
+      body: JSON.stringify({})
+    });
+  } catch (error) {
+    console.error('Logout request failed:', error.message);
+  }
+
+  window.location.href = '/login.html';
+}
+
+elements.phoneSettingsForm?.addEventListener(
+  'submit',
+  savePhoneSettings
+);
+
+elements.generatePairingButton?.addEventListener(
+  'click',
+  generatePairingCode
+);
+
+elements.copyPairingButton?.addEventListener(
+  'click',
+  copyPairingCode
+);
+
+elements.logoutButton?.addEventListener(
+  'click',
+  logout
+);
+
+loadDashboard();
