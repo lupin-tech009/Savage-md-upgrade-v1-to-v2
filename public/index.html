@@ -1,0 +1,213 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+  <meta
+    name="description"
+    content="SAVAGE MD V2 customer dashboard by Lupin Tech."
+  >
+
+  <meta name="theme-color" content="#090909">
+
+  <title>SAVAGE MD V2 | Dashboard</title>
+
+  <link rel="icon" href="/assets/favicon.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="/style.css">
+</head>
+
+<body>
+  <div class="app-shell">
+
+    <header class="topbar">
+      <a class="brand" href="/">
+        <span class="brand-mark">S</span>
+        <span>
+          <strong>SAVAGE MD</strong>
+          <small>VERSION 2.0</small>
+        </span>
+      </a>
+
+      <button
+        id="logoutButton"
+        class="logout-button"
+        type="button"
+      >
+        Logout
+      </button>
+    </header>
+
+    <main class="dashboard">
+
+      <section class="welcome-section">
+        <div>
+          <p class="eyebrow">CUSTOMER DASHBOARD</p>
+          <h1>Welcome back</h1>
+          <p class="muted">
+            Manage your account and WhatsApp connection.
+          </p>
+        </div>
+
+        <span id="accountStatus" class="status-badge">
+          Checking account...
+        </span>
+      </section>
+
+      <section class="dashboard-grid">
+
+        <article class="dashboard-card account-card">
+          <p class="card-label">YOUR ACCOUNT</p>
+
+          <h2 id="customerUsername">Loading...</h2>
+
+          <div class="detail-row">
+            <span>Account status</span>
+            <strong id="customerStatus">Loading...</strong>
+          </div>
+
+          <div class="detail-row">
+            <span>Subscription</span>
+            <strong id="subscriptionStatus">Loading...</strong>
+          </div>
+
+          <div class="detail-row">
+            <span>Expires on</span>
+            <strong id="subscriptionExpiry">Loading...</strong>
+          </div>
+        </article>
+
+        <article class="dashboard-card connection-card">
+          <p class="card-label">WHATSAPP CONNECTION</p>
+
+          <div class="connection-indicator">
+            <span id="connectionDot"></span>
+            <strong id="connectionStatus">
+              Disconnected
+            </strong>
+          </div>
+
+          <p id="connectionMessage" class="muted">
+            Connect your WhatsApp account to get started.
+          </p>
+
+          <div class="detail-row">
+            <span>Session status</span>
+            <strong id="sessionStatus">Checking...</strong>
+          </div>
+        </article>
+
+      </section>
+
+      <section class="dashboard-card settings-card">
+        <p class="card-label">PHONE SETTINGS</p>
+
+        <h2>Configure your numbers</h2>
+
+        <p class="muted">
+          Enter two different phone numbers for your account.
+        </p>
+
+        <form id="phoneSettingsForm">
+
+          <label for="pairingNumber">
+            WhatsApp pairing number
+          </label>
+
+          <input
+            id="pairingNumber"
+            name="pairingNumber"
+            type="tel"
+            placeholder="08012345678"
+            autocomplete="tel"
+            required
+          >
+
+          <label for="promotionNumber">
+            Designated promotion number
+          </label>
+
+          <input
+            id="promotionNumber"
+            name="promotionNumber"
+            type="tel"
+            placeholder="08087654321"
+            required
+          >
+
+          <button class="primary-button" type="submit">
+            Save phone settings
+          </button>
+
+          <p id="phoneSettingsMessage" class="form-message"></p>
+        </form>
+      </section>
+
+      <section class="dashboard-card pairing-card">
+
+        <p class="card-label">DEVICE PAIRING</p>
+
+        <h2>Connect WhatsApp</h2>
+
+        <p class="muted">
+          Generate a pairing code for your configured WhatsApp number.
+        </p>
+
+        <button
+          id="generatePairingButton"
+          class="primary-button"
+          type="button"
+        >
+          Generate pairing code
+        </button>
+
+        <div id="pairingResult" hidden>
+
+          <p class="pairing-label">YOUR PAIRING CODE</p>
+
+          <div class="pairing-code-container">
+            <strong id="pairingCode">--------</strong>
+
+            <button
+              id="copyPairingButton"
+              class="copy-button"
+              type="button"
+            >
+              Copy code
+            </button>
+          </div>
+
+          <p id="pairingMessage" class="muted"></p>
+        </div>
+
+        <p id="pairingError" class="form-message error-message"></p>
+
+      </section>
+
+      <section class="dashboard-card information-card">
+        <p class="card-label">ACCOUNT INFORMATION</p>
+
+        <h2>Important reminders</h2>
+
+        <ul>
+          <li>Keep your access key private.</li>
+          <li>One customer account supports one WhatsApp session.</li>
+          <li>Your subscription must remain active to start pairing.</li>
+          <li>Private WhatsApp messages do not execute bot commands.</li>
+        </ul>
+      </section>
+
+    </main>
+
+    <footer class="footer">
+      <p>SAVAGE MD V2.0</p>
+      <p>Powered by Lupin Tech</p>
+    </footer>
+
+  </div>
+
+  <script src="/app.js" defer></script>
+</body>
+  </html>
+  
