@@ -1,0 +1,76 @@
+
+import test from 'node:test';
+import assert from 'node:assert/strict';
+
+import {
+  normalizePhoneNumber
+} from '../src/utils/phoneNumber.js';
+
+import {
+  validateUsername,
+  validateAccessKey
+} from '../src/utils/validators.js';
+
+import {
+  newSecret,
+  safeEqual
+} from '../src/security.js';
+
+test('normalizes Nigerian local phone numbers', () => {
+  assert.equal(
+    normalizePhoneNumber('08012345678'),
+    '2348012345678'
+  );
+});
+
+test('normalizes Nigerian international phone numbers', () => {
+  assert.equal(
+    normalizePhoneNumber('+2348012345678'),
+    '2348012345678'
+  );
+});
+
+test('rejects invalid phone numbers', () => {
+  assert.throws(() => normalizePhoneNumber('123'));
+});
+
+test('accepts valid usernames', () => {
+  assert.equal(validateUsername('lupin_customer'), true);
+});
+
+test('rejects usernames that are too short', () => {
+  assert.equal(validateUsername('ab'), false);
+});
+
+test('rejects usernames containing spaces', () => {
+  assert.equal(validateUsername('lupin customer'), false);
+});
+
+test('generates unique high-entropy secrets', () => {
+  const first = newSecret();
+  const second = newSecret();
+
+  assert.equal(typeof first, 'string');
+  assert.equal(typeof second, 'string');
+  assert.notEqual(first, second);
+  assert.ok(first.length >= 32);
+});
+
+test('secure comparison accepts matching secrets', () => {
+  assert.equal(
+    safeEqual('secret-value', 'secret-value'),
+    true
+  );
+});
+
+test('secure comparison rejects different secrets', () => {
+  assert.equal(
+    safeEqual('secret-value', 'different-value'),
+    false
+  );
+});
+
+test('secure comparison rejects missing values', () => {
+  assert.equal(safeEqual('', 'secret-value'), false);
+  assert.equal(safeEqual(null, 'secret-value'), false);
+});
