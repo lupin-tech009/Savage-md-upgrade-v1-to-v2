@@ -1,0 +1,68 @@
+
+import test from 'node:test';
+import assert from 'node:assert/strict';
+
+import {
+  isAuthorizedGroupUser,
+  isGroupCommandAllowed
+} from '../src/whatsapp/messageHandler.js';
+
+test('rejects users who are not authorized', () => {
+  const result = isAuthorizedGroupUser({
+    senderNumber: '2348000000000',
+    pairingNumber: '2348111111111',
+    promotionNumber: '2348222222222'
+  });
+
+  assert.equal(result, false);
+});
+
+test('allows the customer's paired WhatsApp number', () => {
+  const result = isAuthorizedGroupUser({
+    senderNumber: '2348111111111',
+    pairingNumber: '2348111111111',
+    promotionNumber: '2348222222222'
+  });
+
+  assert.equal(result, true);
+});
+
+test('allows the customer designated promotion number', () => {
+  const result = isAuthorizedGroupUser({
+    senderNumber: '2348222222222',
+    pairingNumber: '2348111111111',
+    promotionNumber: '2348222222222'
+  });
+
+  assert.equal(result, true);
+});
+
+test('rejects commands from private chats', () => {
+  assert.equal(
+    isGroupCommandAllowed({
+      isGroup: false,
+      isAuthorized: true
+    }),
+    false
+  );
+});
+
+test('rejects unauthorized group commands', () => {
+  assert.equal(
+    isGroupCommandAllowed({
+      isGroup: true,
+      isAuthorized: false
+    }),
+    false
+  );
+});
+
+test('allows authorized group commands', () => {
+  assert.equal(
+    isGroupCommandAllowed({
+      isGroup: true,
+      isAuthorized: true
+    }),
+    true
+  );
+});
