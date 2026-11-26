@@ -1,0 +1,99 @@
+
+import { logger } from '../logger.js';
+
+export class GroupWorkflow {
+  constructor({
+    sendMessage,
+    getConnectionStatus
+  } = {}) {
+    if (typeof sendMessage !== 'function') {
+      throw new Error('A sendMessage function is required.');
+    }
+
+    this.sendMessage = sendMessage;
+    this.getConnectionStatus = getConnectionStatus;
+  }
+
+  async handleCommand({
+    customerId,
+    groupId,
+    sender,
+    command
+  } = {}) {
+    if (!customerId || !groupId || !sender) {
+      throw new Error('Missing group workflow information.');
+    }
+
+    const normalizedCommand = String(command || '')
+      .trim()
+      .toLowerCase()
+      .split(/\s+/)[0];
+
+    if (!normalizedCommand) {
+      return { handled: false };
+    }
+
+    try {
+      switch (normalizedCommand) {
+        case 'menu':
+        case 'help':
+          await this.showMenu(groupId);
+          return { handled: true, command: normalizedCommand };
+
+        case 'status':
+          await this.showStatus(customerId, groupId);
+          return { handled: true, command: 'status' };
+
+        default:
+          return { handled: false, reason: 'unknown_command' };
+      }
+    } catch (error) {
+      logger.error(
+        {
+          customerId,
+          groupId,
+          error: error.message
+        },
+        'Group workflow command failed.'
+      );
+
+      return {
+        handled: true,
+        success: false,
+        reason: 'command_failed'
+      };
+    }
+  }
+
+  async showMenu(groupId) {
+    const message = [
+      '*SAVAGE MD V2*',
+      '',
+      'Available group commands:',
+      '• $menu — Show this menu',
+      '• $help — Show available commands',
+      '• $status — Check bot connection status',
+      '',
+      'Private-message commands are disabled.'
+    ].join('\n');
+
+    await this.sendMessage(groupId, message);
+  }
+
+  async showStatus(customerId, groupId) {
+    let status = 'Status unavailable';
+
+    if (typeof this.getConnectionStatus === 'function') {
+      const result = await this.getConnectionStatus(customerId);
+
+      status = result?.connected
+        ? 'Connected'
+        : 'Not connected';
+    }
+
+    await this.sendMessage(
+      groupId,
+      `*SAVAGE MD V2*\nConnection: ${status}`
+    );
+  }
+}
