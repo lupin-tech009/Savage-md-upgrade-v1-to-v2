@@ -1,0 +1,108 @@
+
+import { getDatabase } from '../database.js';
+
+function database() {
+  return getDatabase();
+}
+
+export async function createPayment({
+  customerId,
+  amount,
+  paymentReference,
+  paymentType = 'subscription'
+}) {
+  const result = await database().query(
+    `INSERT INTO payments (
+       customer_id,
+       amount,
+       payment_reference,
+       payment_type,
+       status,
+       created_at
+     )
+     VALUES ($1, $2, $3, $4, 'pending', NOW())
+     RETURNING id, customer_id, amount, payment_reference,
+               payment_type, status, created_at`,
+    [
+      customerId,
+      amount,
+      paymentReference,
+      paymentType
+    ]
+  );
+
+  return result.rows[0];
+}
+
+export async function getPaymentById(paymentId) {
+  const result = await database().query(
+    `SELECT id, customer_id, amount, payment_reference,
+            payment_type, status, verified_at, created_at
+     FROM payments
+     WHERE id = $1
+     LIMIT 1`,
+    [paymentId]
+  );
+
+  return result.rows[0] ?? null;
+}
+
+export async function getPaymentByReference(paymentReference) {
+  const result = await database().query(
+    `SELECT id, customer_id, amount, payment_reference,
+            payment_type, status, verified_at, created_at
+     FROM payments
+     WHERE payment_reference = $1
+     LIMIT 1`,
+    [paymentReference]
+  );
+
+  return result.rows[0] ?? null;
+}
+
+export async function listCustomerPayments(customerId) {
+  const result = await database().query(
+    `SELECT id, amount, payment_reference, payment_type,
+            status, verified_at, created_at
+     FROM payments
+     WHERE customer_id = $1
+     ORDER BY created_at DESC`,
+    [customerId]
+  );
+
+  return result.rows;
+}
+
+export async function verifyPayment(paymentId, adminId) {
+  const result = await database().query(
+    `UPDATE payments
+     SET status = 'verified',
+         verified_by = $2,
+         verified_at = NOW()
+     WHERE id = $1
+       AND status = 'pending'
+     RETURNING id, customer_id, amount, payment_reference,
+               payment_type, status, verified_by, verified_at`,
+    [paymentId, adminId]
+  );
+
+  return result.rows[0] ?? null;
+}
+
+export async function rejectPayment(paymentId, adminId, reason) {
+  const result = await database().query(
+    `UPDATE payments
+     SET status = 'rejected',
+         verified_by = $2,
+         rejection_reason = $3,
+         verified_at = NOW()
+     WHERE id = $1
+       AND status = 'pending'
+     RETURNING id, customer_id, amount, payment_reference,
+               payment_type, status, verified_by, rejection_reason,
+               verified_at`,
+    [paymentId, adminId, reason]
+  );
+
+  return result.rows[0] ?? null;
+}
