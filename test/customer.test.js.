@@ -1,0 +1,50 @@
+
+import test from 'node:test';
+import assert from 'node:assert/strict';
+
+import {
+  validateUsername
+} from '../src/utils/validators.js';
+
+import {
+  normalizePhoneNumber
+} from '../src/utils/phoneNumber.js';
+
+test('accepts valid customer usernames', () => {
+  assert.equal(validateUsername('lupin_customer'), true);
+  assert.equal(validateUsername('customer123'), true);
+});
+
+test('rejects usernames that are too short', () => {
+  assert.equal(validateUsername('ab'), false);
+});
+
+test('rejects usernames containing spaces', () => {
+  assert.equal(validateUsername('lupin customer'), false);
+});
+
+test('rejects usernames containing unsupported symbols', () => {
+  assert.equal(validateUsername('customer@123'), false);
+});
+
+test('normalizes a customer WhatsApp number', () => {
+  assert.equal(
+    normalizePhoneNumber('08012345678'),
+    '2348012345678'
+  );
+});
+
+test('normalizes a customer international number', () => {
+  assert.equal(
+    normalizePhoneNumber('+2348012345678'),
+    '2348012345678'
+  );
+});
+
+test('rejects invalid customer phone numbers', () => {
+  assert.throws(() => normalizePhoneNumber('123'));
+});
+
+test('rejects empty customer phone numbers', () => {
+  assert.throws(() => normalizePhoneNumber(''));
+});
