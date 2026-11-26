@@ -1,0 +1,49 @@
+const requestBuckets = new Map();
+
+const WINDOW_MS = 60 * 1000;
+const MAX_REQUESTS = 60;
+
+export function rateLimiter(options = {}) {
+  const windowMs = options.windowMs ?? WINDOW_MS;
+  const maxRequests = options.maxRequests ?? MAX_REQUESTS;
+
+  return function limitRequests(req, res, next) {
+    const now = Date.now();
+
+    // Use the authenticated customer ID when available.
+    // Otherwise, use the request IP.
+    const key = req.auth?.customerId
+      ? `customer:${req.auth.customerId}`
+      : `ip:${req.ip || 'unknown'}`;
+
+    let bucket = requestBuckets.get(key);
+
+    if (!bucket || now >= bucket.resetAt) {
+      bucket = {
+        count: 0,
+        resetAt: now + windowMs
+      };
+
+      requestBuckets.set(key, bucket);
+    }
+
+    bucket.count += 1;
+
+    const remaining = Math.max(0, maxRequests - bucket.count);
+
+    res.setHeader('RateLimit-Limit', String(maxRequests));
+    res.setHeader('RateLimit-Remaining', String(remaining));
+    res.setHeader('RateLimit-Reset', String(
+      Math.ceil(bucket.resetAt / 1000)
+    ));
+
+    if (bucket.count > maxRequests) {
+      return res.status(429).json({
+        success: false,
+        error: 'Too many requests. Please try again later.'
+      });
+    }
+
+    return next();
+  };
+}
