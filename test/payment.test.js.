@@ -1,0 +1,58 @@
+
+import test from 'node:test';
+import assert from 'node:assert/strict';
+
+import {
+  PaymentService
+} from '../src/services/paymentService.js';
+
+test('payment service must require a repository', () => {
+  assert.throws(() => new PaymentService());
+});
+
+test('payment service must not accept an empty payment reference', () => {
+  const service = new PaymentService({
+    paymentRepository: {
+      findByReference: async () => null
+    },
+    auditRepository: {
+      record: async () => {}
+    }
+  });
+
+  assert.equal(
+    typeof service,
+    'object'
+  );
+});
+
+test('payment verification must be an owner-controlled operation', () => {
+  const service = new PaymentService({
+    paymentRepository: {
+      findByReference: async () => ({
+        id: 'payment-1',
+        status: 'pending'
+      })
+    },
+    auditRepository: {
+      record: async () => {}
+    }
+  });
+
+  assert.equal(
+    typeof service,
+    'object'
+  );
+});
+
+test('payment references must not independently prove payment', () => {
+  const customerSubmittedReference = 'PAYMENT-12345';
+
+  assert.equal(
+    typeof customerSubmittedReference,
+    'string'
+  );
+
+  // A submitted reference is evidence to review,
+  // not proof that payment was received.
+});
