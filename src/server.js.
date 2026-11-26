@@ -1,0 +1,117 @@
+
+import express from 'express';
+import path from 'node:path';
+import { fileURLToPath } from 'node:url';
+
+import { config } from './config.js';
+import { logger } from './logger.js';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+
+const app = express();
+
+app.disable('x-powered-by');
+
+app.use(express.json({
+  limit: '100kb'
+}));
+
+app.use(express.urlencoded({
+  extended: false,
+  limit: '100kb'
+}));
+
+// Serve the customer dashboard.
+app.use(
+  express.static(
+    path.resolve(__dirname, '../public'),
+    {
+      index: 'index.html',
+      dotfiles: 'deny'
+    }
+  )
+);
+
+// Basic health endpoint.
+app.get('/api/health', (req, res) => {
+  res.status(200).json({
+    success: true,
+    service: 'SAVAGE MD V2',
+    status: 'running',
+    timestamp: new Date().toISOString()
+  });
+});
+
+// Handle unknown API routes.
+app.use('/api', (req, res) => {
+  res.status(404).json({
+    success: false,
+    error: 'API endpoint not found.'
+  });
+});
+
+// Central error handler.
+app.use((error, req, res, next) => {
+  logger.error(
+    {
+      message: error.message,
+      method: req.method,
+      path: req.path
+    },
+    'HTTP request failed.'
+  );
+
+  if (res.headersSent) {
+    return next(error);
+  }
+
+  res.status(error.statusCode || 500).json({
+    success: false,
+    error: 'An unexpected server error occurred.'
+  });
+});
+
+let server;
+
+export function startServer() {
+  if (server) {
+    return server;
+  }
+
+  const port = Number(config.port || process.env.PORT || 3000);
+
+  server = app.listen(port, '0.0.0.0', () => {
+    logger.info(
+      { port },
+      'SAVAGE MD V2 server started.'
+    );
+  });
+
+  return server;
+}
+
+export async function stopServer() {
+  if (!server) {
+    return;
+  }
+
+  await new Promise((resolve, reject) => {
+    server.close(error => {
+      if (error) {
+        reject(error);
+      } else {
+        resolve();
+      }
+    });
+  });
+
+  server = null;
+}
+
+if (process.argv[1] &&
+    path.resolve(process.argv[1]) === __filename) {
+  startServer();
+}
+
+export default app;
