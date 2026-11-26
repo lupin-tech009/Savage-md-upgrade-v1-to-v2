@@ -1,0 +1,32 @@
+import { logger } from '../logger.js';
+
+export function errorHandler(error, req, res, next) {
+  logger.error(
+    {
+      errorName: error?.name || 'UnknownError',
+      method: req.method,
+      path: req.path
+    },
+    'Request failed'
+  );
+
+  if (res.headersSent) {
+    return next(error);
+  }
+
+  const statusCode =
+    Number.isInteger(error?.statusCode) &&
+    error.statusCode >= 400 &&
+    error.statusCode < 600
+      ? error.statusCode
+      : 500;
+
+  const message = statusCode >= 500
+    ? 'An internal server error occurred.'
+    : error.message || 'The request could not be completed.';
+
+  return res.status(statusCode).json({
+    success: false,
+    error: message
+  });
+}
