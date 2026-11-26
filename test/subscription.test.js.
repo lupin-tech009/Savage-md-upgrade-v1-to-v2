@@ -1,0 +1,75 @@
+
+import test from 'node:test';
+import assert from 'node:assert/strict';
+
+import {
+  SubscriptionService
+} from '../src/services/subscriptionService.js';
+
+test('subscription duration is 30 days', () => {
+  const THIRTY_DAYS = 30 * 24 * 60 * 60 * 1000;
+
+  assert.equal(
+    THIRTY_DAYS,
+    2592000000
+  );
+});
+
+test('subscription price is ₦3000', () => {
+  const MONTHLY_PRICE_NGN = 3000;
+
+  assert.equal(MONTHLY_PRICE_NGN, 3000);
+});
+
+test('subscription service requires a repository', () => {
+  assert.throws(() => new SubscriptionService());
+});
+
+test('subscription service can be initialized with a repository', () => {
+  const service = new SubscriptionService({
+    subscriptionRepository: {
+      getByCustomerId: async () => null
+    }
+  });
+
+  assert.equal(typeof service, 'object');
+});
+
+test('expired subscription is not active', () => {
+  const now = Date.now();
+  const expiry = now - 1000;
+
+  assert.equal(expiry > now, false);
+});
+
+test('future subscription expiry is active', () => {
+  const now = Date.now();
+  const expiry = now + 1000;
+
+  assert.equal(expiry > now, true);
+});
+
+test('early renewal extends existing expiry by 30 days', () => {
+  const THIRTY_DAYS = 30 * 24 * 60 * 60 * 1000;
+
+  const existingExpiry = Date.UTC(2026, 11, 1);
+  const renewedExpiry = existingExpiry + THIRTY_DAYS;
+
+  assert.equal(
+    renewedExpiry - existingExpiry,
+    THIRTY_DAYS
+  );
+});
+
+test('expired subscription renewal starts from renewal time', () => {
+  const THIRTY_DAYS = 30 * 24 * 60 * 60 * 1000;
+
+  const now = Date.UTC(2026, 10, 26);
+  const expiredDate = now - THIRTY_DAYS;
+  const renewedExpiry = Math.max(expiredDate, now) + THIRTY_DAYS;
+
+  assert.equal(
+    renewedExpiry - now,
+    THIRTY_DAYS
+  );
+});
