@@ -1,0 +1,85 @@
+
+import { logger } from '../logger.js';
+
+export class PairingService {
+  constructor({
+    customerService,
+    subscriptionService,
+    pairingFlow
+  } = {}) {
+    if (!customerService || !subscriptionService || !pairingFlow) {
+      throw new Error(
+        'PairingService requires customerService, subscriptionService and pairingFlow.'
+      );
+    }
+
+    this.customerService = customerService;
+    this.subscriptionService = subscriptionService;
+    this.pairingFlow = pairingFlow;
+  }
+
+  async startPairing(customerId) {
+    if (!customerId || typeof customerId !== 'string') {
+      throw new Error('A valid customer ID is required.');
+    }
+
+    const customer = await this.customerService.getCustomer(
+      customerId
+    );
+
+    if (!customer || customer.status !== 'active') {
+      throw new Error('Customer account is not active.');
+    }
+
+    const subscription = await this.subscriptionService.getStatus(
+      customerId
+    );
+
+    if (!subscription || subscription.status !== 'active') {
+      throw new Error('An active subscription is required.');
+    }
+
+    if (
+      !customer.pairingNumber ||
+      !customer.promotionNumber
+    ) {
+      throw new Error(
+        'Configure both required phone numbers before pairing.'
+      );
+    }
+
+    if (customer.pairingNumber === customer.promotionNumber) {
+      throw new Error(
+        'The pairing number and promotion number must be different.'
+      );
+    }
+
+    const result = await this.pairingFlow.start({
+      customerId,
+      phoneNumber: customer.pairingNumber
+    });
+
+    logger.info(
+      { customerId },
+      'Customer WhatsApp pairing started.'
+    );
+
+    return result;
+  }
+
+  async getPairingStatus(customerId) {
+    if (!customerId || typeof customerId !== 'string') {
+      throw new Error('A valid customer ID is required.');
+    }
+
+    const customer = await this.customerService.getCustomer(
+      customerId
+    );
+
+    if (!customer) {
+      throw new Error('Customer account was not found.');
+    }
+
+    return this.pairingFlow.status(customerId);
+  }
+}
