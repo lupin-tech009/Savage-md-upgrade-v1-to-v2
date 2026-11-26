@@ -1,0 +1,33 @@
+
+import makeWASocket, {
+  Browsers
+} from '@whiskeysockets/baileys';
+
+import { baileysLogger } from '../logger.js';
+
+export function createWhatsAppSocket({
+  auth,
+  logger = baileysLogger
+} = {}) {
+  if (!auth || typeof auth !== 'object') {
+    throw new Error('Valid WhatsApp authentication state is required.');
+  }
+
+  return makeWASocket({
+    auth,
+
+    logger,
+
+    browser: Browsers.macOS('Chrome'),
+
+    printQRInTerminal: false,
+
+    markOnlineOnConnect: false,
+
+    syncFullHistory: false,
+
+    generateHighQualityLinkPreview: false,
+
+    shouldSyncHistoryMessage: () => false
+  });
+}
