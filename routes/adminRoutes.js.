@@ -1,0 +1,162 @@
+import { Router } from 'express';
+
+import { adminAuth } from '../middleware/adminAuth.js';
+
+import {
+  getCustomer,
+  listCustomers,
+  verifyPayment,
+  rejectPayment,
+  issueCustomerAccessKey,
+  suspendCustomer,
+  reactivateCustomer
+} from '../services/adminService.js';
+
+const router = Router();
+
+// Every route below requires administrator authentication.
+router.use(adminAuth);
+
+// List customers.
+router.get('/customers', async (req, res, next) => {
+  try {
+    const customers = await listCustomers();
+
+    return res.json({
+      success: true,
+      customers
+    });
+  } catch (error) {
+    return next(error);
+  }
+});
+
+// Get one customer.
+router.get('/customers/:customerId', async (req, res, next) => {
+  try {
+    const customer = await getCustomer(
+      req.params.customerId
+    );
+
+    if (!customer) {
+      return res.status(404).json({
+        success: false,
+        error: 'Customer not found.'
+      });
+    }
+
+    return res.json({
+      success: true,
+      customer
+    });
+  } catch (error) {
+    return next(error);
+  }
+});
+
+// Verify a customer's payment.
+router.post(
+  '/payments/:paymentId/verify',
+  async (req, res, next) => {
+    try {
+      const result = await verifyPayment(
+        req.params.paymentId,
+        req.auth.sessionId
+      );
+
+      return res.json({
+        success: true,
+        message: 'Payment verified successfully.',
+        result
+      });
+    } catch (error) {
+      return next(error);
+    }
+  }
+);
+
+// Reject a customer's payment.
+router.post(
+  '/payments/:paymentId/reject',
+  async (req, res, next) => {
+    try {
+      const result = await rejectPayment(
+        req.params.paymentId,
+        req.auth.sessionId
+      );
+
+      return res.json({
+        success: true,
+        message: 'Payment rejected.',
+        result
+      });
+    } catch (error) {
+      return next(error);
+    }
+  }
+);
+
+// Issue the customer's one-time access key.
+router.post(
+  '/customers/:customerId/access-key',
+  async (req, res, next) => {
+    try {
+      const result = await issueCustomerAccessKey(
+        req.params.customerId,
+        req.auth.sessionId
+      );
+
+      return res.status(201).json({
+        success: true,
+        message: 'Access key issued.',
+        accessKey: result.accessKey
+      });
+    } catch (error) {
+      return next(error);
+    }
+  }
+);
+
+// Suspend a customer.
+router.post(
+  '/customers/:customerId/suspend',
+  async (req, res, next) => {
+    try {
+      const result = await suspendCustomer(
+        req.params.customerId,
+        req.auth.sessionId
+      );
+
+      return res.json({
+        success: true,
+        message: 'Customer suspended.',
+        result
+      });
+    } catch (error) {
+      return next(error);
+    }
+  }
+);
+
+// Reactivate a customer.
+router.post(
+  '/customers/:customerId/reactivate',
+  async (req, res, next) => {
+    try {
+      const result = await reactivateCustomer(
+        req.params.customerId,
+        req.auth.sessionId
+      );
+
+      return res.json({
+        success: true,
+        message: 'Customer account reviewed.',
+        result
+      });
+    } catch (error) {
+      return next(error);
+    }
+  }
+);
+
+export default router;
