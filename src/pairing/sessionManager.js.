@@ -1,0 +1,183 @@
+import { config } from '../config.js';
+
+const ALLOWED_STATES = new Set([
+  'idle',
+  'connecting',
+  'waiting_for_pairing',
+  'connected',
+  'failed',
+  'disconnected'
+]);
+
+export class SessionManager {
+  constructor({
+    socketFactory,
+    sessionStore,
+    maxSessions = 5
+  } = {}) {
+    if (!socketFactory || !sessionStore) {
+      throw new Error(
+        'Socket factory and session store are required.'
+      );
+    }
+
+    this.socketFactory = socketFactory;
+    this.sessionStore = sessionStore;
+    this.maxSessions = Math.min(
+      Math.max(1, Number(maxSessions) || 5),
+      config.maxSessions
+    );
+
+    this.sessions = new Map();
+    this.startingCustomers = new Set();
+  }
+
+  getActiveCount() {
+    return [...this.sessions.values()].filter(
+      session => [
+        'connecting',
+        'waiting_for_pairing',
+        'connected'
+      ].includes(session.status)
+    ).length;
+  }
+
+  getStatus(customerId) {
+    const session = this.sessions.get(customerId);
+
+    if (!session) {
+      return {
+        status: 'idle',
+        connected: false,
+        code: null
+      };
+    }
+
+    return {
+      status: session.status,
+      connected: session.status === 'connected',
+      code: session.code || null
+    };
+  }
+
+  async startPairing(customerId) {
+    if (
+      typeof customerId !== 'string' ||
+      !customerId.trim()
+    ) {
+      throw new Error('Invalid customer ID.');
+    }
+
+    const id = customerId.trim();
+
+    if (this.startingCustomers.has(id)) {
+      throw new Error('Pairing is already starting.');
+    }
+
+    if (this.sessions.has(id)) {
+      const existing = this.sessions.get(id);
+
+      if (
+        existing.status === 'connected' ||
+        existing.status === 'connecting' ||
+        existing.status === 'waiting_for_pairing'
+      ) {
+        throw new Error(
+          'This customer already has an active session.'
+        );
+      }
+    }
+
+    if (this.getActiveCount() >= this.maxSessions) {
+      throw new Error(
+        'Maximum simultaneous WhatsApp sessions reached.'
+      );
+    }
+
+    this.startingCustomers.add(id);
+
+    try {
+      const savedCredentials =
+        await this.sessionStore.load(id);
+
+      const socket = await this.socketFactory.create({
+        customerId: id,
+        credentials: savedCredentials
+      });
+
+      const session = {
+        customerId: id,
+        socket,
+        status: 'connecting',
+        code: null,
+        startedAt: Date.now()
+      };
+
+      this.sessions.set(id, session);
+
+      return {
+        status: session.status,
+        code: null
+      };
+    } catch (error) {
+      this.sessions.delete(id);
+      throw error;
+    } finally {
+      this.startingCustomers.delete(id);
+    }
+  }
+
+  updateStatus(customerId, status, code = null) {
+    if (!ALLOWED_STATES.has(status)) {
+      throw new Error('Invalid session status.');
+    }
+
+    const session = this.sessions.get(customerId);
+
+    if (!session) {
+      throw new Error('Session not found.');
+    }
+
+    session.status = status;
+    session.code = status === 'waiting_for_pairing'
+      ? code
+      : null;
+  }
+
+  async saveCredentials(customerId, credentials) {
+    if (!this.sessions.has(customerId)) {
+      throw new Error('Session not found.');
+    }
+
+    await this.sessionStore.save(customerId, credentials);
+  }
+
+  async stopSession(customerId) {
+    const session = this.sessions.get(customerId);
+
+    if (!session) {
+      return false;
+    }
+
+    this.sessions.delete(customerId);
+
+    try {
+      await session.socket?.end?.();
+    } finally {
+      session.code = null;
+    }
+
+    return true;
+  }
+
+  getCapacity() {
+    return {
+      activeSessions: this.getActiveCount(),
+      maximumSessions: this.maxSessions,
+      availableSlots: Math.max(
+        0,
+        this.maxSessions - this.getActiveCount()
+      )
+    };
+  }
+}
