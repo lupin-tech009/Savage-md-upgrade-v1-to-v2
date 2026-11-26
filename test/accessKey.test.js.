@@ -1,0 +1,93 @@
+
+import test from 'node:test';
+import assert from 'node:assert/strict';
+
+import {
+  newSecret,
+  hashSecret,
+  safeEqual
+} from '../src/security.js';
+
+import {
+  validateAccessKey
+} from '../src/utils/validators.js';
+
+test('generates a unique access key secret', () => {
+  const first = newSecret();
+  const second = newSecret();
+
+  assert.notEqual(first, second);
+});
+
+test('access key has sufficient length', () => {
+  const key = newSecret();
+
+  assert.ok(key.length >= 32);
+});
+
+test('hashes an access key consistently', () => {
+  const key = newSecret();
+
+  assert.equal(
+    hashSecret(key),
+    hashSecret(key)
+  );
+});
+
+test('different access keys produce different hashes', () => {
+  const first = newSecret();
+  const second = newSecret();
+
+  assert.notEqual(
+    hashSecret(first),
+    hashSecret(second)
+  );
+});
+
+test('securely compares matching access keys', () => {
+  assert.equal(
+    safeEqual('access-key-example', 'access-key-example'),
+    true
+  );
+});
+
+test('rejects different access keys', () => {
+  assert.equal(
+    safeEqual('access-key-one', 'access-key-two'),
+    false
+  );
+});
+
+test('rejects empty access keys', () => {
+  assert.equal(
+    safeEqual('', ''),
+    false
+  );
+});
+
+test('validates the expected access-key format', () => {
+  const key = newSecret();
+
+  assert.equal(
+    validateAccessKey(key),
+    true
+  );
+});
+
+test('rejects malformed access keys', () => {
+  assert.equal(
+    validateAccessKey('abc'),
+    false
+  );
+});
+
+test('rejects missing access keys', () => {
+  assert.equal(
+    validateAccessKey(''),
+    false
+  );
+  assert.equal(
+    validateAccessKey(null),
+    false
+  );
+});
