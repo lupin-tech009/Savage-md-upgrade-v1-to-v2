@@ -1,0 +1,86 @@
+
+import {
+  normalizePhoneNumber
+} from './phoneNumber.js';
+
+export function validateUsername(username) {
+  if (typeof username !== 'string') {
+    return false;
+  }
+
+  const value = username.trim();
+
+  return /^[a-zA-Z0-9_]{3,24}$/.test(value);
+}
+
+export function validateAccessKey(accessKey) {
+  if (typeof accessKey !== 'string') {
+    return false;
+  }
+
+  return /^[A-Za-z0-9_-]{32,128}$/.test(accessKey);
+}
+
+export function validateEmail(email) {
+  if (typeof email !== 'string') {
+    return false;
+  }
+
+  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim());
+}
+
+export function validatePhoneNumber(phoneNumber) {
+  try {
+    normalizePhoneNumber(phoneNumber);
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+export function validateCustomerPhoneNumbers({
+  pairingNumber,
+  promotionNumber
+} = {}) {
+  try {
+    const pairing = normalizePhoneNumber(pairingNumber);
+    const promotion = normalizePhoneNumber(promotionNumber);
+
+    return {
+      valid: pairing !== promotion,
+      pairingNumber: pairing,
+      promotionNumber: promotion,
+      error: pairing === promotion
+        ? 'The two phone numbers must be different.'
+        : null
+    };
+  } catch {
+    return {
+      valid: false,
+      pairingNumber: null,
+      promotionNumber: null,
+      error: 'One or both phone numbers are invalid.'
+    };
+  }
+}
+
+export function validateRequiredString(value, fieldName) {
+  if (
+    typeof value !== 'string' ||
+    !value.trim()
+  ) {
+    return {
+      valid: false,
+      error: `${fieldName} is required.`
+    };
+  }
+
+  return {
+    valid: true,
+    value: value.trim()
+  };
+}
+
+export function validatePositiveInteger(value) {
+  return Number.isSafeInteger(value) && value > 0;
+}
