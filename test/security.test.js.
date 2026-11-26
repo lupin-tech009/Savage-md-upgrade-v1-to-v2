@@ -1,0 +1,68 @@
+
+import test from 'node:test';
+import assert from 'node:assert/strict';
+
+import {
+  newSecret,
+  safeEqual,
+  hashSecret
+} from '../src/security.js';
+
+test('newSecret generates a sufficiently long secret', () => {
+  const secret = newSecret();
+
+  assert.equal(typeof secret, 'string');
+  assert.ok(secret.length >= 32);
+});
+
+test('newSecret generates different values', () => {
+  const first = newSecret();
+  const second = newSecret();
+
+  assert.notEqual(first, second);
+});
+
+test('safeEqual accepts identical strings', () => {
+  assert.equal(
+    safeEqual('savage-secret', 'savage-secret'),
+    true
+  );
+});
+
+test('safeEqual rejects different strings', () => {
+  assert.equal(
+    safeEqual('savage-secret', 'another-secret'),
+    false
+  );
+});
+
+test('safeEqual rejects empty values', () => {
+  assert.equal(safeEqual('', ''), false);
+});
+
+test('safeEqual rejects null values', () => {
+  assert.equal(safeEqual(null, 'secret'), false);
+  assert.equal(safeEqual('secret', null), false);
+});
+
+test('safeEqual rejects non-string values', () => {
+  assert.equal(safeEqual(12345, '12345'), false);
+});
+
+test('hashSecret creates a consistent hash', () => {
+  const first = hashSecret('test-secret');
+  const second = hashSecret('test-secret');
+
+  assert.equal(first, second);
+});
+
+test('hashSecret produces different hashes for different inputs', () => {
+  const first = hashSecret('secret-one');
+  const second = hashSecret('secret-two');
+
+  assert.notEqual(first, second);
+});
+
+test('hashSecret rejects empty input', () => {
+  assert.throws(() => hashSecret(''));
+});
