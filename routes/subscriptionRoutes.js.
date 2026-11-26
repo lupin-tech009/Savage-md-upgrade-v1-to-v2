@@ -1,0 +1,67 @@
+import { Router } from 'express';
+
+import { customerAuth } from '../middleware/customerAuth.js';
+import { getSubscription } from '../repositories/subscriptionRepository.js';
+import { getCustomerPayments } from '../repositories/paymentRepository.js';
+
+const router = Router();
+
+// Get subscription information.
+router.get(
+  '/status',
+  customerAuth,
+  async (req, res, next) => {
+    try {
+      const subscription = await getSubscription(
+        req.auth.customerId
+      );
+
+      if (!subscription) {
+        return res.status(404).json({
+          success: false,
+          error: 'No subscription found.'
+        });
+      }
+
+      return res.json({
+        success: true,
+        subscription: {
+          status: subscription.status,
+          startsAt: subscription.starts_at,
+          expiresAt: subscription.expires_at
+        }
+      });
+    } catch (error) {
+      return next(error);
+    }
+  }
+);
+
+// Get the customer's payment history.
+router.get(
+  '/payments',
+  customerAuth,
+  async (req, res, next) => {
+    try {
+      const payments = await getCustomerPayments(
+        req.auth.customerId
+      );
+
+      return res.json({
+        success: true,
+        payments: payments.map(payment => ({
+          id: payment.id,
+          amount: payment.amount,
+          currency: payment.currency,
+          status: payment.status,
+          createdAt: payment.created_at,
+          verifiedAt: payment.verified_at
+        }))
+      });
+    } catch (error) {
+      return next(error);
+    }
+  }
+);
+
+export default router;
