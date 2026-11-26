@@ -1,0 +1,61 @@
+
+import {
+  randomBytes,
+  timingSafeEqual,
+  createHash
+} from 'node:crypto';
+
+export function newSecret(bytes = 32) {
+  if (
+    !Number.isInteger(bytes) ||
+    bytes < 32 ||
+    bytes > 128
+  ) {
+    throw new Error(
+      'Secret size must be between 32 and 128 bytes.'
+    );
+  }
+
+  return randomBytes(bytes).toString('base64url');
+}
+
+export function safeEqual(first, second) {
+  if (
+    typeof first !== 'string' ||
+    typeof second !== 'string'
+  ) {
+    return false;
+  }
+
+  const firstHash = createHash('sha256')
+    .update(first, 'utf8')
+    .digest();
+
+  const secondHash = createHash('sha256')
+    .update(second, 'utf8')
+    .digest();
+
+  return timingSafeEqual(firstHash, secondHash);
+}
+
+export function hashSecret(value) {
+  if (typeof value !== 'string' || value.length === 0) {
+    throw new TypeError('A non-empty secret is required.');
+  }
+
+  return createHash('sha256')
+    .update(value, 'utf8')
+    .digest('hex');
+}
+
+export function bearerToken(req) {
+  const header = req?.headers?.authorization;
+
+  if (typeof header !== 'string') {
+    return null;
+  }
+
+  const match = header.match(/^Bearer\s+([^\s]+)$/i);
+
+  return match ? match[1] : null;
+}
