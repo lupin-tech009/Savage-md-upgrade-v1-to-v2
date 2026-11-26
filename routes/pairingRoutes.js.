@@ -1,0 +1,58 @@
+import { Router } from 'express';
+
+import { customerAuth } from '../middleware/customerAuth.js';
+import { subscriptionGuard } from '../middleware/subscriptionGuard.js';
+import { startPairing, getPairingStatus } from '../services/pairingService.js';
+
+const router = Router();
+
+// Request a WhatsApp pairing code.
+router.post(
+  '/start',
+  customerAuth,
+  subscriptionGuard,
+  async (req, res, next) => {
+    try {
+      const result = await startPairing(req.auth.customerId);
+
+      return res.status(200).json({
+        success: true,
+        message: 'Pairing request accepted.',
+        pairing: {
+          status: result.status,
+          code: result.code || null
+        }
+      });
+    } catch (error) {
+      return next(error);
+    }
+  }
+);
+
+// Get the authenticated customer's pairing status.
+router.get(
+  '/status',
+  customerAuth,
+  subscriptionGuard,
+  async (req, res, next) => {
+    try {
+      const status = await getPairingStatus(
+        req.auth.customerId
+      );
+
+      return res.json({
+        success: true,
+        pairing: {
+          status: status.status,
+          connected: status.connected,
+          code: status.code || null,
+          message: status.message || null
+        }
+      });
+    } catch (error) {
+      return next(error);
+    }
+  }
+);
+
+export default router;
