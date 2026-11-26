@@ -1,0 +1,106 @@
+
+import { EventEmitter } from 'node:events';
+
+import { logger } from '../logger.js';
+
+const VALID_STATES = new Set([
+  'connecting',
+  'connected',
+  'disconnected',
+  'reconnecting',
+  'failed'
+]);
+
+export class ConnectionMonitor extends EventEmitter {
+  constructor() {
+    super();
+
+    this.connections = new Map();
+  }
+
+  update(customerId, state, details = {}) {
+    if (!customerId || typeof customerId !== 'string') {
+      throw new Error('A valid customer ID is required.');
+    }
+
+    if (!VALID_STATES.has(state)) {
+      throw new Error(`Invalid connection state: ${state}`);
+    }
+
+    const previous = this.connections.get(customerId);
+
+    const connection = {
+      customerId,
+      state,
+      connected: state === 'connected',
+      updatedAt: new Date().toISOString(),
+      error: state === 'failed'
+        ? this.safeError(details.error)
+        : null
+    };
+
+    this.connections.set(customerId, connection);
+
+    logger.info(
+      {
+        customerId,
+        previousState: previous?.state ?? null,
+        currentState: state
+      },
+      'WhatsApp connection state updated.'
+    );
+
+    this.emit('state', { ...connection });
+
+    return { ...connection };
+  }
+
+  getStatus(customerId) {
+    const connection = this.connections.get(customerId);
+
+    if (!connection) {
+      return {
+        customerId,
+        state: 'disconnected',
+        connected: false,
+        updatedAt: null,
+        error: null
+      };
+    }
+
+    return { ...connection };
+  }
+
+  isConnected(customerId) {
+    return this.connections.get(customerId)?.state === 'connected';
+  }
+
+  remove(customerId) {
+    this.connections.delete(customerId);
+
+    this.emit('removed', { customerId });
+
+    return true;
+  }
+
+  safeError(error) {
+    if (!error) {
+      return 'Connection failed.';
+    }
+
+    const message = String(error.message || error);
+
+    // Avoid exposing credentials, pairing codes or tokens.
+    return message
+      .replace(/\b[A-Z0-9]{4}-[A-Z0-9]{4}\b/gi, '[REDACTED]')
+      .replace(/Bearer\s+\S+/gi, 'Bearer [REDACTED]')
+      .slice(0, 200);
+  }
+
+  getAllStatuses() {
+    return Array.from(
+      this.connections.values(),
+      connection => ({ ...connection })
+    );
+  }
+}
