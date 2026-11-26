@@ -1,0 +1,146 @@
+
+import { getDatabase } from '../database.js';
+
+export async function getSubscription(customerId) {
+  const database = getDatabase();
+
+  const result = await database.query(
+    `UPDATE customers
+     SET
+       subscription_status = CASE
+         WHEN subscription_status = 'active'
+           AND subscription_expires_at <= NOW()
+         THEN 'expired'
+         ELSE subscription_status
+       END,
+       updated_at = CASE
+         WHEN subscription_status = 'active'
+           AND subscription_expires_at <= NOW()
+         THEN NOW()
+         ELSE updated_at
+       END
+     WHERE id = $1
+     RETURNING
+       id,
+       username,
+       subscription_status,
+       subscription_started_at,
+       subscription_expires_at`,
+    [customerId]
+  );
+
+  return result.rows[0] || null;
+}
+
+export async function expireSubscriptions() {
+  const database = getDatabase();
+
+  const result = await database.query(
+    `UPDATE customers
+     SET
+       subscription_status = 'expired',
+       updated_at = NOW()
+     WHERE subscription_status = 'active'
+       AND subscription_expires_at <= NOW()
+     RETURNING id, username, subscription_expires_at`
+  );
+
+  return result.rows;
+}
+
+export async function renewSubscription(customerId, paymentId) {
+  const database = getDatabase();
+
+  const client = await database.connect();
+
+  try {
+    await client.query('BEGIN');
+
+    // Add the payment-use marker if this database was created
+    // using an earlier version of the initial schema.
+    await client.query(
+      `ALTER TABLE payments
+       ADD COLUMN IF NOT EXISTS applied_at TIMESTAMPTZ`
+    );
+
+    const paymentResult = await client.query(
+      `SELECT id, customer_id, payment_status, applied_at
+       FROM payments
+       WHERE id = $1
+         AND customer_id = $2
+       FOR UPDATE`,
+      [paymentId, customerId]
+    );
+
+    if (paymentResult.rowCount !== 1) {
+      throw new Error('Verified renewal payment not found.');
+    }
+
+    const payment = paymentResult.rows[0];
+
+    if (
+      payment.payment_status !== 'verified' ||
+      payment.applied_at
+    ) {
+      throw new Error(
+        'Payment is unverified or has already been applied.'
+      );
+    }
+
+    const customerResult = await client.query(
+      `SELECT id, subscription_expires_at
+       FROM customers
+       WHERE id = $1
+       FOR UPDATE`,
+      [customerId]
+    );
+
+    if (customerResult.rowCount !== 1) {
+      throw new Error('Customer account not found.');
+    }
+
+    const renewalResult = await client.query(
+      `UPDATE customers
+       SET
+         subscription_status = 'active',
+         subscription_started_at = CASE
+           WHEN subscription_expires_at IS NOT NULL
+             AND subscription_expires_at > NOW()
+           THEN subscription_started_at
+           ELSE NOW()
+         END,
+         subscription_expires_at = CASE
+           WHEN subscription_expires_at IS NOT NULL
+             AND subscription_expires_at > NOW()
+           THEN subscription_expires_at + INTERVAL '30 days'
+           ELSE NOW() + INTERVAL '30 days'
+         END,
+         updated_at = NOW()
+       WHERE id = $1
+       RETURNING
+         id,
+         username,
+         subscription_status,
+         subscription_started_at,
+         subscription_expires_at`,
+      [customerId]
+    );
+
+    await client.query(
+      `UPDATE payments
+       SET applied_at = NOW()
+       WHERE id = $1
+         AND applied_at IS NULL`,
+      [paymentId]
+    );
+
+    await client.query('COMMIT');
+
+    return renewalResult.rows[0];
+  } catch (error) {
+    await client.query('ROLLBACK');
+    throw error;
+  } finally {
+    client.release();
+  }
+}
