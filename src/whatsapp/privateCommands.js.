@@ -1,0 +1,45 @@
+
+import { logger } from '../logger.js';
+
+export class PrivateCommandHandler {
+  constructor() {
+    this.ignoredCount = 0;
+  }
+
+  async handle({ customerId, message } = {}) {
+    const remoteJid = message?.key?.remoteJid;
+
+    if (!remoteJid) {
+      return {
+        handled: false,
+        reason: 'invalid_message'
+      };
+    }
+
+    // Group messages are handled by messageHandler.js.
+    if (remoteJid.endsWith('@g.us')) {
+      return {
+        handled: false,
+        reason: 'group_message'
+      };
+    }
+
+    // Ignore private messages without replying,
+    // executing commands, or changing session state.
+    this.ignoredCount += 1;
+
+    logger.debug(
+      { customerId },
+      'Private WhatsApp message ignored.'
+    );
+
+    return {
+      handled: true,
+      reason: 'private_message_ignored'
+    };
+  }
+
+  getIgnoredCount() {
+    return this.ignoredCount;
+  }
+}
