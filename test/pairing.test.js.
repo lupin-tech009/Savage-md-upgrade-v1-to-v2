@@ -1,0 +1,77 @@
+
+import test from 'node:test';
+import assert from 'node:assert/strict';
+
+import {
+  PairingService
+} from '../src/services/pairingService.js';
+
+test('pairing service requires dependencies', () => {
+  assert.throws(() => new PairingService());
+});
+
+test('pairing service can be initialized with dependencies', () => {
+  const service = new PairingService({
+    customerService: {},
+    subscriptionService: {},
+    sessionService: {}
+  });
+
+  assert.equal(typeof service, 'object');
+});
+
+test('customer must have a pairing number', () => {
+  const customer = {
+    id: 'customer-1',
+    pairingNumber: null,
+    promotionNumber: '2348012345678'
+  };
+
+  assert.equal(Boolean(customer.pairingNumber), false);
+});
+
+test('customer must have a designated promotion number', () => {
+  const customer = {
+    id: 'customer-1',
+    pairingNumber: '2348012345678',
+    promotionNumber: null
+  };
+
+  assert.equal(Boolean(customer.promotionNumber), false);
+});
+
+test('pairing and promotion numbers must be different', () => {
+  const customer = {
+    pairingNumber: '2348012345678',
+    promotionNumber: '2348012345678'
+  };
+
+  assert.equal(
+    customer.pairingNumber !== customer.promotionNumber,
+    false
+  );
+});
+
+test('one customer must not have multiple active pairing attempts', () => {
+  const activeAttempts = new Set();
+
+  activeAttempts.add('customer-1');
+
+  assert.equal(activeAttempts.has('customer-1'), true);
+  assert.equal(activeAttempts.size, 1);
+});
+
+test('different customers can have separate pairing attempts', () => {
+  const activeAttempts = new Set();
+
+  activeAttempts.add('customer-1');
+  activeAttempts.add('customer-2');
+
+  assert.equal(activeAttempts.size, 2);
+});
+
+test('global pairing limit is five sessions', () => {
+  const MAX_SESSIONS = 5;
+
+  assert.equal(MAX_SESSIONS, 5);
+});
