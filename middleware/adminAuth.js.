@@ -1,0 +1,36 @@
+import { bearerToken } from '../security.js';
+import { validateSession } from '../services/authenticationService.js';
+
+export async function adminAuth(req, res, next) {
+  try {
+    const token = bearerToken(req);
+
+    if (!token) {
+      return res.status(401).json({
+        success: false,
+        error: 'Administrator authentication required.'
+      });
+    }
+
+    const session = await validateSession(token);
+
+    if (
+      !session ||
+      session.role !== 'admin'
+    ) {
+      return res.status(403).json({
+        success: false,
+        error: 'Administrator access denied.'
+      });
+    }
+
+    req.auth = {
+      sessionId: session.id,
+      role: session.role
+    };
+
+    return next();
+  } catch (error) {
+    return next(error);
+  }
+}
