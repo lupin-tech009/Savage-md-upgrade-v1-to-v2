@@ -1,0 +1,88 @@
+const pairingLocks = new Map();
+
+function validateCustomerId(customerId) {
+  if (
+    typeof customerId !== 'string' ||
+    !customerId.trim()
+  ) {
+    throw new Error('A valid customer ID is required.');
+  }
+
+  return customerId.trim();
+}
+
+export function createPairingFlow({
+  sessionManager
+} = {}) {
+  if (!sessionManager) {
+    throw new Error('Session manager is required.');
+  }
+
+  if (
+    typeof sessionManager.startPairing !== 'function' ||
+    typeof sessionManager.getStatus !== 'function'
+  ) {
+    throw new Error('Invalid session manager interface.');
+  }
+
+  async function start(customerId) {
+    const id = validateCustomerId(customerId);
+
+    // Prevent simultaneous pairing requests for one customer.
+    if (pairingLocks.has(id)) {
+      throw new Error(
+        'A pairing request is already being processed.'
+      );
+    }
+
+    const operation = (async () => {
+      const result = await sessionManager.startPairing(id);
+
+      if (!result || typeof result.status !== 'string') {
+        throw new Error('Pairing could not be started.');
+      }
+
+      return {
+        status: result.status,
+        code: result.code || null
+      };
+    })();
+
+    pairingLocks.set(id, operation);
+
+    try {
+      return await operation;
+    } finally {
+      if (pairingLocks.get(id) === operation) {
+        pairingLocks.delete(id);
+      }
+    }
+  }
+
+  async function status(customerId) {
+    const id = validateCustomerId(customerId);
+
+    const result = await sessionManager.getStatus(id);
+
+    if (!result) {
+      return {
+        status: 'not_started',
+        connected: false,
+        code: null,
+        message: null
+      };
+    }
+
+    return {
+      status: result.status || 'unknown',
+      connected: result.connected === true,
+      code: result.code || null,
+      message: result.message || null
+    };
+  }
+
+  return {
+    start,
+    status
+  };
+}
