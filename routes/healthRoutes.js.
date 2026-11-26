@@ -1,0 +1,35 @@
+import { Router } from 'express';
+import { getDatabase } from '../database.js';
+
+const router = Router();
+
+// Basic server health.
+router.get('/', (req, res) => {
+  return res.json({
+    success: true,
+    service: 'SAVAGE MD V2.0',
+    status: 'online',
+    timestamp: new Date().toISOString()
+  });
+});
+
+// Database health.
+router.get('/database', async (req, res) => {
+  try {
+    const database = getDatabase();
+
+    await database.query('SELECT 1');
+
+    return res.json({
+      success: true,
+      database: 'connected'
+    });
+  } catch {
+    return res.status(503).json({
+      success: false,
+      database: 'unavailable'
+    });
+  }
+});
+
+export default router;
