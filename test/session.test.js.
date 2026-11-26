@@ -1,0 +1,75 @@
+
+import test from 'node:test';
+import assert from 'node:assert/strict';
+
+import { SessionManager } from '../src/pairing/sessionManager.js';
+
+function createManager(maxSessions = 5) {
+  return new SessionManager({
+    maxSessions,
+    sessionStore: {
+      async load() {
+        return null;
+      },
+      async save() {},
+      async delete() {}
+    },
+    socketFactory: {
+      async create() {
+        return {
+          end() {},
+          ev: {
+            on() {},
+            removeAllListeners() {}
+          }
+        };
+      }
+    }
+  });
+}
+
+test('session manager starts with no active sessions', () => {
+  const manager = createManager();
+
+  assert.equal(manager.getActiveCount(), 0);
+});
+
+test('session manager rejects duplicate customer sessions', async () => {
+  const manager = createManager();
+
+  await manager.createSession('customer-1');
+
+  await assert.rejects(
+    manager.createSession('customer-1'),
+    /already|exists|active/i
+  );
+});
+
+test('session manager enforces its configured session limit', async () => {
+  const manager = createManager(2);
+
+  await manager.createSession('customer-1');
+  await manager.createSession('customer-2');
+
+  await assert.rejects(
+    manager.createSession('customer-3'),
+    /limit|maximum|capacity/i
+  );
+});
+
+test('session manager can find an existing customer session', async () => {
+  const manager = createManager();
+
+  await manager.createSession('customer-1');
+
+  assert.ok(manager.getSession('customer-1'));
+});
+
+test('session manager reports the correct active session count', async () => {
+  const manager = createManager();
+
+  await manager.createSession('customer-1');
+  await manager.createSession('customer-2');
+
+  assert.equal(manager.getActiveCount(), 2);
+});
