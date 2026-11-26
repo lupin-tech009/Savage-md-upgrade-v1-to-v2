@@ -1,0 +1,88 @@
+
+import { logger } from '../logger.js';
+
+export class SessionService {
+  constructor({
+    sessionManager,
+    sessionStore,
+    connectionMonitor
+  } = {}) {
+    if (!sessionManager || !sessionStore || !connectionMonitor) {
+      throw new Error(
+        'SessionService requires sessionManager, sessionStore and connectionMonitor.'
+      );
+    }
+
+    this.sessionManager = sessionManager;
+    this.sessionStore = sessionStore;
+    this.connectionMonitor = connectionMonitor;
+  }
+
+  async getStatus(customerId) {
+    this.validateCustomerId(customerId);
+
+    const connection = this.connectionMonitor.getStatus(customerId);
+
+    return {
+      customerId,
+      state: connection.state,
+      connected: connection.connected,
+      updatedAt: connection.updatedAt
+    };
+  }
+
+  async hasStoredSession(customerId) {
+    this.validateCustomerId(customerId);
+
+    return this.sessionStore.exists(customerId);
+  }
+
+  async disconnect(customerId) {
+    this.validateCustomerId(customerId);
+
+    await this.sessionManager.disconnect(customerId);
+
+    this.connectionMonitor.update(
+      customerId,
+      'disconnected'
+    );
+
+    logger.info(
+      { customerId },
+      'Customer WhatsApp session disconnected.'
+    );
+
+    return {
+      success: true,
+      state: 'disconnected'
+    };
+  }
+
+  async removeSession(customerId) {
+    this.validateCustomerId(customerId);
+
+    await this.sessionManager.disconnect(customerId);
+    await this.sessionStore.delete(customerId);
+
+    this.connectionMonitor.remove(customerId);
+
+    logger.info(
+      { customerId },
+      'Customer WhatsApp session removed.'
+    );
+
+    return {
+      success: true,
+      sessionRemoved: true
+    };
+  }
+
+  validateCustomerId(customerId) {
+    if (
+      typeof customerId !== 'string' ||
+      !customerId.trim()
+    ) {
+      throw new Error('A valid customer ID is required.');
+    }
+  }
+}
